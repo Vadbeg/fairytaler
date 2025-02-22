@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 from openai import OpenAI
-from dotenv import load_dotenv
 from pydantic import BaseModel
 
 import os
@@ -30,9 +29,7 @@ FAIRYTALE_PROMPT = """
 
 class GeneratorLM:
 
-    
     def __init__(self):
-
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.model_name = os.getenv("MODEL_NAME")
         self.client = OpenAI(api_key=OPENAI_API_KEY)
@@ -53,10 +50,9 @@ class GeneratorLM:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": FAIRYTALE_PROMPT.format(context=context)},
             ],
-            response_format=base_model
+            response_format=base_model,
         )
 
         event = completion.choices[0].message.parsed
 
         return event
-

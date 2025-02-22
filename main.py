@@ -4,11 +4,7 @@ import uvicorn
 
 if __name__ == "__main__":
     config = uvicorn.Config(
-        app=app,
-        host="0.0.0.0",
-        port=8001,
-        loop="auto",
-        reload=True
+        app=app, host="0.0.0.0", port=8000, loop="auto", reload=True
     )
     server = uvicorn.Server(config)
 
