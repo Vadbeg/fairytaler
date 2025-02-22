@@ -1,7 +1,15 @@
 from fairytaler.routes import app
+import uvicorn
 
 
 if __name__ == "__main__":
-    import uvicorn
+    config = uvicorn.Config(
+        app=app,
+        host="0.0.0.0",
+        port=8001,
+        loop="auto",
+        reload=True
+    )
+    server = uvicorn.Server(config)
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    server.run()

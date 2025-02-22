@@ -1,18 +1,19 @@
 from fastapi import FastAPI, Response, HTTPException
 from datetime import datetime
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import os
 from fastapi.middleware.cors import CORSMiddleware
-
 from fairytaler.text_to_speech import TextToSpeech
+from fairytaler.generation import GeneratorLM
 
 app = FastAPI()
 tts = TextToSpeech()
+llm = GeneratorLM()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Add your frontend URL
+    allow_origins=["*"], # Add your frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,8 +47,8 @@ stories: List[Story] = [
 ]
 
 class StoryCreate(BaseModel):
-    name: str
-    text: str
+    name: str = Field(description="The title of the story")
+    text: str = Field(description="Text of the story")
 
 
 @app.get("/stories", response_model=List[Story])
@@ -71,11 +72,9 @@ def get_story_audio(story_id: int) -> Response:
 
 @app.post("/generate-story")
 def generate_story(settings: StorySettings) -> Story:
-    # This is a mock implementation
-    mock_story = StoryCreate(
-        name=f"The Adventure in the {settings.context}",
-        text=f"Once upon a time in a {settings.context}, there lived a wise old owl...",
-    )
+
+    
+    story = llm.generate_story(context=settings.context, base_model=StoryCreate)
 
     # Generate unique ID and filename
     story_id = len(stories) + 1
@@ -83,13 +82,13 @@ def generate_story(settings: StorySettings) -> Story:
     audio_path = os.path.join(STORIES_DIR, audio_filename)
 
     # Generate audio
-    tts.generate_audio(mock_story.text, audio_path)
+    tts.generate_audio(story.text, audio_path)
 
     # Create story object
     new_story = Story(
         id=story_id,
-        name=mock_story.name,
-        text=mock_story.text,
+        name=story.name,
+        text=story.text,
         audio_path=audio_path,
         created_at=datetime.now(),
     )
