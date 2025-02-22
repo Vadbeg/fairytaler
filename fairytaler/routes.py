@@ -3,11 +3,20 @@ from datetime import datetime
 from typing import List
 from pydantic import BaseModel
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 from fairytaler.text_to_speech import TextToSpeech
 
 app = FastAPI()
 tts = TextToSpeech()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Add your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Storage for generated stories (in real app this would be a database)
 STORIES_DIR = "generated_stories"
@@ -26,8 +35,15 @@ class Story(BaseModel):
     created_at: datetime
 
 
-stories: List[Story] = []
-
+stories: List[Story] = [
+    Story(
+        id=1,
+        name="The Adventure in the Forest",
+        text="Once upon a time in a forest, there lived a wise old owl...",
+        audio_path="generated_stories/story_1.mp3",
+        created_at=datetime.now(),
+    )
+]
 
 class StoryCreate(BaseModel):
     name: str
