@@ -1,11 +1,13 @@
-from fastapi import FastAPI, Response, HTTPException
+import os
 from datetime import datetime
 from typing import List
-from pydantic import BaseModel, Field
-import os
+
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fairytaler.text_to_speech import TextToSpeech
+from pydantic import BaseModel, Field
+
 from fairytaler.generation import GeneratorLM
+from fairytaler.text_to_speech import TextToSpeech
 
 app = FastAPI()
 tts = TextToSpeech()

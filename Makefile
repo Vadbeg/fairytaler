@@ -8,6 +8,8 @@ CODE_DIRS = .
 format:
 	black $(CODE_DIRS)
 	ruff check --fix $(CODE_DIRS)
+	isort $(CODE_DIRS)
+
 
 
 # Run type checking

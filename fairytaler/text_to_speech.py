@@ -1,11 +1,14 @@
 import os
+import sys
+
 from elevenlabs import ElevenLabs, save
 
 
 class TextToSpeech:
     def __init__(self) -> None:
-        os.environ["REQUESTS_CA_BUNDLE"] = "/opt/homebrew/etc/openssl@3/cert.pem"
-        os.environ["SSL_CERT_FILE"] = "/opt/homebrew/etc/openssl@3/cert.pem"
+        if sys.platform == "darwin":
+            os.environ["REQUESTS_CA_BUNDLE"] = "/opt/homebrew/etc/openssl@3/cert.pem"
+            os.environ["SSL_CERT_FILE"] = "/opt/homebrew/etc/openssl@3/cert.pem"
 
         self.api_key = os.environ["ELEVEN_LABS_API_KEY"]
         self.client = ElevenLabs(api_key=self.api_key)

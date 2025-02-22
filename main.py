@@ -1,6 +1,6 @@
-from fairytaler.routes import app
 import uvicorn
 
+from fairytaler.routes import app
 
 if __name__ == "__main__":
     config = uvicorn.Config(
