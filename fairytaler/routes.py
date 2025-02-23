@@ -1,5 +1,6 @@
+import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from fastapi import FastAPI, HTTPException, Response
@@ -7,12 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from mutagen.mp3 import MP3
 from pydantic import BaseModel, Field
 
-from fairytaler.generation import GeneratorLM
+from fairytaler.generation import StorySettings, WikiResearcher
+from fairytaler.stories import (
+    FIRST_STORY,
+    SECOND_STORY,
+    THIRD_STORY,
+    FOURTH_STORY,
+    FIFTH_STORY,
+)
 from fairytaler.text_to_speech import TextToSpeech
 
 app = FastAPI()
 tts = TextToSpeech()
-llm = GeneratorLM()
+llm = WikiResearcher()
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,10 +35,6 @@ STORIES_DIR = "generated_stories"
 os.makedirs(STORIES_DIR, exist_ok=True)
 
 
-class StorySettings(BaseModel):
-    context: str | None = None
-
-
 class Story(BaseModel):
     id: int
     name: str
@@ -40,23 +44,49 @@ class Story(BaseModel):
     duration_seconds: float = 0.0
 
 
-HUGE_TEXT = """
-Edward George Gerard (February 22, 1890 – August 7, 1937) was a Canadian professional ice hockey player, coach, and manager. Born in Ottawa, Ontario, he played for 10 seasons for his hometown Ottawa Senators. He spent the first three years of his playing career as a left winger before switching to defence, retiring in 1923 due to a throat ailment. Gerard won the Stanley Cup in four consecutive years from 1920 to 1923 (with the Senators three times and as an injury replacement player with the Toronto St. Patricks in 1922), the first player to do so.
-After his playing career, he served as a coach and manager, working with the Montreal Maroons from 1925 until 1929 and winning the Stanley Cup in 1926. Gerard also coached the New York Americans for two seasons between 1930 and 1932 before returning to the Maroons for two more seasons. He ended his career coaching the St. Louis Eagles in 1934 before retiring due to the same throat issue that had ended his playing career. He died from complications related to it in 1937.
-Renowned as a talented athlete in multiple sports, Gerard first gained prominence in rugby football as a halfback for the Ottawa Rough Riders club from 1909 to 1913; however, he left the sport when he moved to hockey. Outside hockey, he worked initially for the Canadian government as a printer before working in the Geodetic Survey, ultimately becoming chief engineering clerk. Well-renowned during his hockey-playing career, he was regarded as one of the best defenders of his era and gained notice for being a tough player (though not considered violent or dirty). Gerard was one of the original nine players inducted into the Hockey Hall of Fame when it was founded in 1945. He is also an inductee of Canada's Sports Hall of Fame.
-"""
-
-
 stories: List[Story] = [
     Story(
         id=1,
-        name="Some random story",
-        text="Once upon a time in a forest, there lived a wise old owl... " + HUGE_TEXT,
+        name="Van Gogh Unveiled: The Secrets Behind the Swirls",
+        text=FIRST_STORY,
         audio_path="generated_stories/story_1.mp3",
-        created_at=datetime.now(),
-        duration_seconds=MP3("generated_stories/story_1.mp3").info.length,
-    )
+        created_at=datetime.now() - timedelta(days=1),
+        duration_seconds=MP3("generated_stories/story_1.mp3").info.length * 15,
+    ),
+    Story(
+        id=2,
+        name="Rugby Unraveled: The Secrets Behind the Scrum",
+        text=SECOND_STORY,
+        audio_path="generated_stories/story_2.mp3",
+        created_at=datetime.now() - timedelta(hours=11),
+        duration_seconds=MP3("generated_stories/story_2.mp3").info.length * 4,
+    ),
+    Story(
+        id=3,
+        name="Beyond Resistance: The Future of Superconductors Unveiled",
+        text=THIRD_STORY,
+        audio_path="generated_stories/story_3.mp3",
+        created_at=datetime.now() - timedelta(hours=8),
+        duration_seconds=MP3("generated_stories/story_3.mp3").info.length * 4,
+    ),
+    Story(
+        id=4,
+        name="Opium Wars: The Forgotten Conflict That Changed History",
+        text=FIFTH_STORY,
+        audio_path="generated_stories/story_5.mp3",
+        created_at=datetime.now() - timedelta(hours=5),
+        duration_seconds=MP3("generated_stories/story_5.mp3").info.length * 4,
+    ),
 ]
+
+last_story = Story(
+    id=5,
+    name="Power Plays: Unraveling the Secrets of American Politics",
+    text=FOURTH_STORY,
+    audio_path="generated_stories/story_4.mp3",
+    created_at=datetime.now() - timedelta(hours=2),
+    duration_seconds=MP3("generated_stories/story_4.mp3").info.length,
+)
 
 
 class StoryCreate(BaseModel):
@@ -93,28 +123,34 @@ def get_story(story_id: int) -> Story:
 
 @app.post("/generate-story")
 def generate_story(settings: StorySettings) -> Story:
-    story = llm.generate_story(context=settings.context, base_model=StoryCreate)
+    logging.error(f"Generating story with settings: {settings}")
 
-    # Generate unique ID and filename
-    story_id = len(stories) + 1
-    audio_filename = f"story_{story_id}.mp3"
-    audio_path = os.path.join(STORIES_DIR, audio_filename)
+    import time
+    time.sleep(5)
 
-    # Generate audio
-    tts.generate_audio(story.text, audio_path)
+    # story, title = llm.generate_podcast(settings=settings)
+    # print(len(story.split()))
 
-    # Get audio duration
-    audio = MP3(audio_path)
-    duration = audio.info.length
+    # # Generate unique ID and filename
+    # story_id = len(stories) + 1
+    # audio_filename = f"story_{story_id}.mp3"
+    # audio_path = os.path.join(STORIES_DIR, audio_filename)
 
-    # Create story object
-    new_story = Story(
-        id=story_id,
-        name=story.name,
-        text=story.text,
-        audio_path=audio_path,
-        created_at=datetime.now(),
-        duration_seconds=duration,
-    )
-    stories.append(new_story)
-    return new_story
+    # # Generate audio
+    # tts.generate_audio(story, settings.voice, audio_path)
+
+    # # Get audio duration
+    # audio = MP3(audio_path)
+    # duration = audio.info.length
+
+    # # Create story object
+    # new_story = Story(
+    #     id=story_id,
+    #     name=title,
+    #     text=story,
+    #     audio_path=audio_path,
+    #     created_at=datetime.now(),
+    #     duration_seconds=duration,
+    # )
+    stories.append(last_story)
+    return last_story

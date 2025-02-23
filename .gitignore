@@ -172,3 +172,4 @@ cython_debug/
 
 *.mp3
 .vscode/
+.DS_Store

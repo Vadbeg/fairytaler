@@ -1,21 +1,17 @@
 import logging
 import os
 import sys
+from typing import Dict, List
 
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
-from pydantic import BaseModel
+
+from fairytaler.text_to_speech import TextToSpeech
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-
-
-class StorySettings(BaseModel):
-    context: str | None = None
-    voice: str | None = None
-    length: int | None = None
 
 
 class WikiResearcher:
@@ -30,7 +26,6 @@ class WikiResearcher:
     - Is educational but entertaining
 
     Do not include words which wouldn't be spoken in a podcast. Do not include tags, or anything. Just the words which would be spoken in a podcast.
-    Script should be around {length} words long.
     """
 
     def __init__(self):
@@ -39,12 +34,10 @@ class WikiResearcher:
             os.environ["SSL_CERT_FILE"] = "/opt/homebrew/etc/openssl@3/cert.pem"
 
         self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model_name = os.getenv("MODEL_NAME", "gpt-4o-mini")
+        self.tts = TextToSpeech()
+        self.model_name = os.getenv("MODEL_NAME", "gpt-4-turbo-preview")
 
-        print(self.model_name)
-        print(os.getenv("OPENAI_API_KEY"))
-
-    def _search_wikipedia(self, topic: str) -> list[dict]:
+    def _search_wikipedia(self, topic: str) -> List[Dict]:
         """Search Wikipedia for articles related to the topic"""
         search_url = "https://en.wikipedia.org/w/api.php"
         params = {
@@ -52,7 +45,7 @@ class WikiResearcher:
             "format": "json",
             "list": "search",
             "srsearch": topic,
-            "srlimit": 10,
+            "srlimit": 5,
         }
 
         response = requests.get(search_url, params=params)
@@ -77,9 +70,8 @@ class WikiResearcher:
         self, research_data: str, topic: str, length: int
     ) -> str:
         """Generate a podcast script from the research data"""
-        LIMIT_IN_CHARS = 30_000 * 4
-        number_of_words = length * 7 * 60
-        prompt = f"Create an engaging podcast script about {topic}. Use this research: {research_data[:LIMIT_IN_CHARS]}. Make it more then {number_of_words} words long."
+        LIMIT_IN_CHARS = 30_000
+        prompt = f"Create an engaging podcast script about {topic}. Use this research: {research_data[:LIMIT_IN_CHARS]}. Make it around {length} words long."
 
         completion = self.openai_client.chat.completions.create(
             model=self.model_name,
@@ -91,24 +83,7 @@ class WikiResearcher:
 
         return completion.choices[0].message.content
 
-    def _create_episode_title(self, topic: str) -> str:
-        """Generate an engaging title for the podcast episode"""
-        prompt = f"Create a catchy and engaging podcast episode title about {topic}. The title should be concise but intriguing, making listeners want to learn more. Do not use quotes in the response."
-
-        completion = self.openai_client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a podcast title generator. Create engaging, catchy titles that grab attention.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-        )
-
-        return completion.choices[0].message.content.strip()
-
-    def generate_podcast(self, settings: StorySettings) -> tuple[str, str]:
+    def generate_podcast(self, topic: str, output_file: str, length: int) -> str:
         """
         Generate a podcast about the given topic
 
@@ -119,10 +94,11 @@ class WikiResearcher:
         Returns:
             The generated podcast script
         """
-        logger.info(f"Researching topic: {settings.context}")
+        logger.info(f"Researching topic: {topic}")
 
         # Search Wikipedia
-        search_results = self._search_wikipedia(settings.context)
+        search_results = self._search_wikipedia(topic)
+        print(search_results)
 
         # Collect research data
         research_data = ""
@@ -131,9 +107,15 @@ class WikiResearcher:
             research_data += content + "\n\n"
 
         # Generate podcast script
-        script = self._create_podcast_script(
-            research_data, settings.context, settings.length
-        )
-        title = self._create_episode_title(settings.context)
+        script = self._create_podcast_script(research_data, topic, length)
 
-        return script, title
+        return script
+
+
+if __name__ == "__main__":
+    researcher = WikiResearcher()
+    topic = "The history of coffee"
+    output_file = "podcast.mp3"
+    length = 1000
+    script = researcher.generate_podcast(topic, output_file, length)
+    print(script)
