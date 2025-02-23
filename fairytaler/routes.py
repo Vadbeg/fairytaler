@@ -4,6 +4,7 @@ from typing import List
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from mutagen.mp3 import MP3
 from pydantic import BaseModel, Field
 
 from fairytaler.generation import GeneratorLM
@@ -36,6 +37,7 @@ class Story(BaseModel):
     text: str
     audio_path: str
     created_at: datetime
+    duration_seconds: float = 0.0
 
 
 HUGE_TEXT = """
@@ -50,8 +52,9 @@ stories: List[Story] = [
         id=1,
         name="Some random story",
         text="Once upon a time in a forest, there lived a wise old owl... " + HUGE_TEXT,
-        audio_path="generated_stories/story_2.mp3",
+        audio_path="generated_stories/story_1.mp3",
         created_at=datetime.now(),
+        duration_seconds=MP3("generated_stories/story_1.mp3").info.length,
     )
 ]
 
@@ -100,6 +103,10 @@ def generate_story(settings: StorySettings) -> Story:
     # Generate audio
     tts.generate_audio(story.text, audio_path)
 
+    # Get audio duration
+    audio = MP3(audio_path)
+    duration = audio.info.length
+
     # Create story object
     new_story = Story(
         id=story_id,
@@ -107,6 +114,7 @@ def generate_story(settings: StorySettings) -> Story:
         text=story.text,
         audio_path=audio_path,
         created_at=datetime.now(),
+        duration_seconds=duration,
     )
     stories.append(new_story)
     return new_story
